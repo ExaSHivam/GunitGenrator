@@ -5,7 +5,7 @@ const gunitInput = document.getElementById('lob-input');
 const output = document.getElementById('output');
 const dropdownID=document.getElementById('lob_select')
 const gunitForm=document.getElementById('gunit-input')
-let uploadBtn; // Declaring uploadBtn variable
+let uploadBtn;
 
 let gunitInputDisplayed = false;
 
@@ -29,6 +29,12 @@ function showGunitInputAndForm() {
         gunitInputDisplayed = true;
     }
 }
+
+function autoSize(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = (Math.min(textarea.scrollHeight, 300)) + 'px';
+}
+
 
 
 document.addEventListener("DOMContentLoaded", function() {

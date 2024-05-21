@@ -63,18 +63,21 @@ body {
 
 
 
-#bdd-input {
-    display: none;
-    position: absolute;
-    top: 100px;
-    left: 230px;
-}
+
 #gunit-input{
     display: none;
     position: absolute;
     top: 137px;
     left: 230px;
 }
+
+.form-control {
+    /* Your form control styles */
+    width: 100%;
+    height: 400px;
+    resize: none;
+}
+
 
 #lob-input{
     display: none;
