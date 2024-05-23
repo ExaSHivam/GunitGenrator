@@ -11,3 +11,4 @@ Flask~=3.0.2
 flask_cors
 langchain~=0.1.12
 openai~=1.29.0
+beautifulsoup4
