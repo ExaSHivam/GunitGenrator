@@ -24,7 +24,9 @@ AWS_GUNIT_BUCKET = os.getenv("aws_gunit_bucket")
 s3_client = boto3.client(
     "s3",
     aws_access_key_id=AWS_ACCESS_KEY_ID,
-    aws_secret_access_key=AWS_SECRET_ACCESS_KEY
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+    region_name="us-east-1"
+
 )
 
 safety_settings = [
@@ -265,9 +267,6 @@ client = anthropic.Anthropic(
 
 def format_code(response):
     if isinstance(response, list):
-        for item in response:
-            if hasattr(item, 'text'):
-                print(f"Response Text: {item.text}")
         code_blocks = []
         for item in response:
             if isinstance(item, str):
@@ -285,9 +284,15 @@ def format_code(response):
             return "\n\n".join(code_blocks)
         else:
             return None
+    elif isinstance(response, str):
+        if "```" in response:
+            code_start = response.find("```")
+            code_end = response.rfind("```")
+            return response[code_start + 3:code_end].strip()
+        else:
+            return response.strip()
     else:
         raise ValueError("Invalid input type for format_code function")
-
 
 
 def get_response(prompt):
@@ -338,7 +343,7 @@ def generate_gunit_data_claude(lob, builder, base_method_name, features):
 
     chunk_size = 25
     data_builder_output = ""  # Initialize data_builder_output as an empty string
-
+    combined_code = ""
     if not find_builder:
         column_chunks = [{k: updated_column_type_map[k] for k in list(updated_column_type_map)[i:i + chunk_size]}
                          for i in range(0, len(updated_column_type_map), chunk_size)]
@@ -358,19 +363,29 @@ def generate_gunit_data_claude(lob, builder, base_method_name, features):
                 print("data builder prompt", data_builder_prompt)
                 data_builder_response = get_response(data_builder_prompt)
                 data_builder_output = format_code(data_builder_response)
-                print("data_builder:", data_builder_response)
-                # data_builder_output = extract_code(data_builder_response)
+                print("data builder output:", data_builder_output)
+                count = count+1
             else:
                 data_builder_prompt = (
-                    f"{data_builder_output} Here is a data builder. Generate only the methods for these columns {chunk_str}, "
+                    f"{data_builder_output} Here is a data builder. Generate only the methods and not the class  for "
+                    f"these columns {chunk_str},"
                     f"similar to the methods inside the provided data builder and also exclude this fields if there "
                     f"{fields_to_exclude}. Generate only the code, no extra text."
                 )
-                # data_builder_response = get_response(data_builder_prompt)
-        #         all_methods.extend(extract_code(data_builder_response).split('\n'))
-        #
-        # data_builder_output += "\n".join(all_methods)
-        # data_builder_output += "\n}"
+                data_builder_response = get_response(data_builder_prompt)
+                print("response:", data_builder_response)
+
+                # Extract the text from the TextBlock object
+                response_text = data_builder_response[0].text if data_builder_response else ""
+
+                new_methods = format_code(response_text)
+                print("new methods:", new_methods)
+                if new_methods:
+                    all_methods.extend(new_methods.split('\n'))
+
+        data_builder_output += "\n".join(all_methods)
+        data_builder_output += "\n}"
+
     else:
         data_builder_output = find_builder
 
@@ -383,7 +398,7 @@ def generate_gunit_data_claude(lob, builder, base_method_name, features):
         f"has methods in the data builder and remove the data which doesn't have methods"
     )
     data_generator_response = get_response(data_generator_prompt)
-    print("data generator:",data_generator_response)
+    print("data generator:", data_generator_response)
 
     data_generator_output = format_code(data_generator_response)
 
@@ -391,7 +406,8 @@ def generate_gunit_data_claude(lob, builder, base_method_name, features):
         f"{gunit_format} here is what a gunit looks like guidewire in gosu.Now can you create a gunit for this base "
         f"method{base_method} and call this data generator function {data_generator_response} to get test data for this "
         f"gunit also keep in mind its just an example and there are no helper or util classes available so do "
-        f"everything inside the same class as the gunit and extract the whole data generator function from data generator and put it in the gunit class and use those methods to create the gunit"
+        f"everything inside the same class as the gunit and extract the whole data generator function from data "
+        f"generator and put it in the gunit class and use those methods to create the gunit and in then part test both positive"
     )
     gunit_generation_response = get_response(gunit_generation_prompt)
     gunit_generation_output = format_code(gunit_generation_response)
