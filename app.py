@@ -2,7 +2,7 @@ import os
 
 
 from flask import Flask, render_template, request, redirect, session, jsonify
-from aws_s3 import generate_gunit_data_claude
+from aws_s3 import generate_gunit_data
 from llama_claude import generate_gunit_data_llama
 
 # from claude_ai import generate_gunit_data_claude, generate_gunit_data_claude_llama
@@ -30,7 +30,7 @@ def generate_gunit():
     features = request.form.getlist("features")
     # print("objects", features)
 
-    response, response1 = generate_gunit_data_claude(selected_lob, builder, base_method, features)
+    response, response1 = generate_gunit_data(selected_lob, builder, base_method, features)
     # print("Data Builder: ", response)
     # print("Gunit: ", response1)
 
