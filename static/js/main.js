@@ -34,6 +34,19 @@ function autoSize(textarea) {
     textarea.style.height = 'auto';
     textarea.style.height = (Math.min(textarea.scrollHeight, 300)) + 'px';
 }
+function copyToClipboard(id) {
+          var textarea = document.getElementById(id);
+          textarea.select();
+          textarea.setSelectionRange(0, 99999); // For mobile devices
+
+           try {
+               var successful = document.execCommand('copy');
+               var msg = successful ? 'successful' : 'unsuccessful';
+               console.log('Copying text command was ' + msg);
+            } catch (err) {
+                console.error('Oops, unable to copy', err);
+            }
+        }
 
 
 

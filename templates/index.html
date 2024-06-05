@@ -111,14 +111,14 @@
                     </div>
                 </div>
 
-                <!--               <label for="base_method" class="mt-3">Base Method</label>-->
-                <!--           <textarea class="form-control" id="base_method" name="base_method"-->
-                <!--          placeholder="Enter the Base Method" oninput="autoSize(this)"></textarea>-->
-                <label for="base_method" class="mt-3">Base Method</label>
-                <select class="form-control" id="base_method" name="base_method">
-                    <option value="assignAutoClaim">assignAutoClaim</option>
-                    <option value="changeVehicleYear">changeVehicleYear</option>
-                </select>
+                               <label for="base_method" class="mt-3">Base Method</label>
+                           <textarea class="form-control" id="base_method" name="base_method"
+                          placeholder="Enter the Base Method" value="" oninput="autoSize(this)"></textarea>
+<!--                <label for="base_method" class="mt-3">Base Method</label>-->
+<!--                <select class="form-control" id="base_method" name="base_method">-->
+<!--                    <option value="assignAutoClaim">assignAutoClaim</option>-->
+<!--                    <option value="changeVehicleYear">changeVehicleYear</option>-->
+<!--                </select>-->
 
 
                 <button class="btn btn-danger mx-2 mt-3" id="upload-gunit">Generate Gunit</button>
@@ -129,16 +129,27 @@
 
     </div>
     {% if response and response1 %}
-    <div class="row" id="output">
-        <div class="col-md-6">
-            <label for="response" class="form-label">Builder Class</label>
-            <input type="text" class="form-control" id="response" name="response" value="{{ response }}" readonly>
+<div class="row" id="output">
+            <div class="col-md-6">
+                <label for="response" class="form-label">Builder Class for {{ builder }}</label>
+                <div class="input-group">
+                    <textarea class="form-control textarea-large" id="response" name="response" readonly>{{ response }}</textarea>
+                    <div class="input-group-append">
+                        <button class="btn btn-outline-secondary btn-small" type="button" onclick="copyToClipboard('response')">Copy Code</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <label for="response1" class="form-label">Gunit for {{ builder }}</label>
+                <div class="input-group">
+                    <textarea class="form-control textarea-large" id="response1" name="response1" readonly>{{ response1 }}</textarea>
+                    <div class="input-group-append">
+                        <button class="btn btn-outline-secondary btn-small" type="button" onclick="copyToClipboard('response1')">Copy Code</button>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="col-md-6">
-            <label for="response1" class="form-label">Gunit</label>
-            <input type="text" class="form-control" id="response1" name="response1" value="{{ response1 }}" readonly>
-        </div>
-    </div>
+
 
     {% endif %}
 </main>
