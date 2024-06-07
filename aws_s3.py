@@ -340,7 +340,7 @@ def generate_gunit_data_claude(lob, builder, base_method_name, features):
                        field_map.get(col) != 'softentityreference'}
     print("Column Type Map:", column_type_map)
 
-    data_type_mapping_template = get_excel_from_s3('DatatypeMapping.xlsx')
+    data_type_mapping_template = get_excel_from_s3('dataTypeMapping.xlsx')
     print("Excel Data:\n", data_type_mapping_template)
     updated_column_type_map = replace_column_types(column_type_map, data_type_mapping_template)
     print("Updated Column Type Map:", updated_column_type_map)
