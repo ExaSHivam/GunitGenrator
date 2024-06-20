@@ -85,4 +85,3 @@ dropdownID.addEventListener('change', function(event) {
         document.querySelector('.upload-gunit').submit();
     });
 });
-

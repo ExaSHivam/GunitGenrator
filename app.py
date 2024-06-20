@@ -28,7 +28,7 @@ def generate_gunit():
     base_method = request.form.get('base_method')
     print("base method", base_method)
     features = request.form.getlist("features")
-    # print("objects", features)
+    print("objects", features)
 
     response, response1 = generate_gunit_data_claude(selected_lob, builder, base_method, features)
     # print("Data Builder: ", response)

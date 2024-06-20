@@ -61,8 +61,9 @@ body {
 #gunit-input {
     display: none;
     position: absolute;
-    top: 137px;
-    left: 230px;
+    top: 230px;
+    left: 240px;
+    font-weight: bold;
 }
 
 .textarea-large {
@@ -82,6 +83,7 @@ body {
 }
 
 #output .col-md-6 {
+    margin:10px;
     height: 500px; /* Adjust as needed */
     display: flex;
     flex-direction: column;
@@ -90,9 +92,11 @@ body {
 
 
 #lob-input {
+    width:25%;
     display: none;
     position: absolute;
-    top: 180px;
+   top: 135px;
+   margin-left: 160px;
 }
 
 .select-lob label {

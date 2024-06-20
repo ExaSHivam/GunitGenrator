@@ -33,7 +33,18 @@
     </ul>
 </nav>
 
-<div id="lob-input">
+
+<p class="hr">
+<p>
+{% if status %}
+<div class="alert alert-danger mt-3" id="alert1">
+    {{ status }} for {{selected_lob}}
+</div>
+{% endif %}
+
+<main class="container">
+    <div class="row">
+        <div id="lob-input">
     <form class="select-lob" id="lob_select" method="post" enctype="multipart/form-data">
         <label for="lob">Line Of Business</label>
         <select class="form-select" name="lob" id="lob" required>
@@ -46,17 +57,6 @@
         </select>
     </form>
 </div>
-
-<p class="hr">
-<p>
-{% if status %}
-<div class="alert alert-danger mt-3" id="alert1">
-    {{ status }} for {{selected_lob}}
-</div>
-{% endif %}
-
-<main class="container">
-    <div class="row">
         <div class="col-md-6" id="gunit-input">
             <form class="upload-gunit" id="uploadGunit" method="post" action="/generate_gunit" enctype="multipart/form-data">
                 <div class="row">
