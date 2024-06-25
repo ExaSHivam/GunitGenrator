@@ -83,20 +83,18 @@ body {
 }
 
 #output .col-md-6 {
-    margin:10px;
+    margin: 10px;
     height: 500px; /* Adjust as needed */
     display: flex;
     flex-direction: column;
 }
 
-
-
 #lob-input {
-    width:25%;
+    width: 25%;
     display: none;
     position: absolute;
-   top: 135px;
-   margin-left: 160px;
+    top: 135px;
+    margin-left: 160px;
 }
 
 .select-lob label {
@@ -113,7 +111,7 @@ body {
 }
 
 #output {
-   font-weight: bold;
+    font-weight: bold;
     position: absolute;
     top: 200px;
     left: 240px;

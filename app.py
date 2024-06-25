@@ -23,12 +23,15 @@ def home():
 def generate_gunit():
 
     selected_lob = request.form.get('selected_lob')
+    print("lob",selected_lob)
     builder = request.form.get('builder')
-    # print("builder", builder)
+    print("builder", builder)
     base_method = request.form.get('base_method')
     print("base method", base_method)
     features = request.form.getlist("features")
     print("objects", features)
+    class_name= request.form.get('class_name')
+    print("class name:",class_name)
 
     response, response1 = generate_gunit_data_claude(selected_lob, builder, base_method, features)
     # print("Data Builder: ", response)
