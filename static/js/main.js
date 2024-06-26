@@ -49,8 +49,6 @@ function autoSize(textarea) {
 }
 
 // Add event listeners to dynamically resize textareas
-
-
 function copyToClipboard(id) {
     var textarea = document.getElementById(id);
     textarea.select();
@@ -101,9 +99,55 @@ document.addEventListener("DOMContentLoaded", function() {
 
     uploadBtn.addEventListener('click', (event) => {
         event.preventDefault();
-        if (typeof initiateLoader === 'function') {
-            initiateLoader();
+        if (validateForm()) {
+            if (typeof initiateLoader === 'function') {
+                initiateLoader();
+            }
+            document.querySelector('.upload-gunit').submit();
         }
-        document.querySelector('.upload-gunit').submit();
     });
 });
+
+function validateForm() {
+    let isValid = true;
+    const lob = document.getElementById('lob');
+    const builder = document.getElementById('builder');
+    const features = document.querySelectorAll('input[name="features"]:checked');
+    const gunitType = document.querySelectorAll('input[name="gunit_type"]:checked');
+    const baseMethodTextarea = document.getElementById('base_method_textarea');
+    const className = document.getElementById('class_name');
+
+    if (!lob.value) {
+        isValid = false;
+        alert('Please select a Line Of Business.');
+    }
+
+    if (!builder.value) {
+        isValid = false;
+        alert('Please select a Builder.');
+    }
+
+    if (features.length === 0) {
+        isValid = false;
+        alert('Please select at least one Feature.');
+    }
+
+    if (gunitType.length === 0) {
+        isValid = false;
+        alert('Please select a Gunit Type.');
+    }
+
+    if (gunitType.length > 0) {
+        if (gunitType[0].value === 'base_method' && !baseMethodTextarea.value.trim()) {
+            isValid = false;
+            alert('Please enter the Base Method.');
+        }
+
+        if (gunitType[0].value === 'class' && !className.value.trim()) {
+            isValid = false;
+            alert('Please enter the Class Name.');
+        }
+    }
+
+    return isValid;
+}

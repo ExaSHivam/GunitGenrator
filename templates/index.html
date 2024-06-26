@@ -82,7 +82,7 @@
                                 Select Features
                             </button>
                             <ul class="dropdown-menu" aria-labelledby="featuresDropdown">
-                                <li><label class="dropdown-item"><input type="checkbox" name="features" value="Exposure"> Exposure</label></li>
+                                <li><label class="dropdown-item"><input type="checkbox" name="features" value="Exposure" required> Exposure</label></li>
                                 <li><label class="dropdown-item"><input type="checkbox" name="features" value="Incident"> Incident</label></li>
                                 <li><label class="dropdown-item"><input type="checkbox" name="features" value="Matter"> Matter</label></li>
                                 <li><label class="dropdown-item"><input type="checkbox" name="features" value="Note"> Note</label></li>
@@ -95,20 +95,20 @@
 
                 <div class="mt-3">
                     <label>GUnit for:</label><br>
-                    <input type="radio" id="base_method" name="gunit_type" value="base_method">
+                    <input type="radio" id="base_method" name="gunit_type" value="base_method" required>
                     <label for="base_method">Method</label><br>
-                    <input type="radio" id="class" name="gunit_type" value="class">
+                    <input type="radio" id="class" name="gunit_type" value="class" required>
                     <label for="class">Class</label>
                 </div>
 
                 <div id="base_method_input" class="mt-3" style="display: none;">
                     <label for="base_method_textarea">Base Method</label>
-                    <textarea class="form-control" id="base_method_textarea" name="base_method" placeholder="Enter the Base Method" oninput="autoSize(this)"></textarea>
+                    <textarea class="form-control" id="base_method_textarea" name="base_method" placeholder="Enter the Base Method" oninput="autoSize(this)" required></textarea>
                 </div>
 
                 <div id="class_name_input" class="mt-3" style="display: none;">
-                    <label for="class_name">Class Name(Please add extensions with the class name)</label>
-                    <input type="text" class="form-control" id="class_name" name="class_name" placeholder="Enter the Class Name">
+                    <label for="class_name">Class Name (Please add extensions with the class name)</label>
+                    <input type="text" class="form-control" id="class_name" name="class_name" placeholder="Enter the Class Name" required>
                 </div>
 
                 <button class="btn btn-danger mx-2 mt-3" id="upload-gunit">Generate Gunit</button>
@@ -143,6 +143,7 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="./static/js/main.js"></script>
+
 
 </body>
 </html>

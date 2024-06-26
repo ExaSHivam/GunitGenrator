@@ -62,7 +62,7 @@ def get_excel_from_s3(object_name):
         excel_data = pd.read_excel(io.BytesIO(raw_data), engine='openpyxl')
 
         # Strip and replace non-breaking spaces from column names
-        print("excel_data",excel_data)
+        print("excel_data", excel_data)
         return excel_data
     except s3_client.exceptions.NoSuchKey:
         return None
@@ -122,7 +122,7 @@ def search_builder(folder_name, file_to_search):
                 print("file to search", file_to_search)
                 print("Checking Key:", obj['Key'])
                 print("obejectKey:", obj['Key'])
-                if obj['Key']==(folder_name+file_to_search):
+                if obj['Key'] == (folder_name + file_to_search):
                     pre_signed_url = s3_client.generate_presigned_url(
                         'get_object',
                         Params={'Bucket': AWS_GUNIT_BUCKET, 'Key': obj['Key']},
@@ -346,7 +346,7 @@ def generate_gunit_data_claude(lob, builder, base_method_name, features):
     pattern = rf'\b{re.escape(target_entity)}\.(\w+)\b'
     columns = re.findall(pattern, contents)
     print("Columns:", columns)
-    ootb_builder_check = get_excel_from_s3('list_of_builders.xlsx')
+    ootb_builder_check = get_excel_from_s3('list_of_Builders.xlsx')
 
     is_present = builder_name_ootd in ootb_builder_check['List of ootb builder'].values
     print(is_present)
@@ -355,7 +355,7 @@ def generate_gunit_data_claude(lob, builder, base_method_name, features):
 
     if is_present:
         data_builder_template = get_object_from_s3('custom_Data_Builder.txt')
-        print("Custom builder:",data_builder_template)
+        print("Custom builder:", data_builder_template)
         pattern_ext = rf'\b{re.escape(target_entity)}\.(\w+_Ext)\b'
         columns = re.findall(pattern_ext, contents)
         print("Columns with target entity and ending with '_Ext':", columns)
@@ -364,7 +364,8 @@ def generate_gunit_data_claude(lob, builder, base_method_name, features):
         columns = re.findall(pattern, contents)
         print("Columns:", columns)
 
-    column_type_map = {col: field_map.get(col, 'unknown') for col in columns if field_map.get(col) != 'softentityreference'}
+    column_type_map = {col: field_map.get(col, 'unknown') for col in columns if
+                       field_map.get(col) != 'softentityreference'}
     print("Column Type Map:", column_type_map)
 
     data_type_mapping_template = get_excel_from_s3('dataTypeMapping.xlsx')
@@ -443,7 +444,7 @@ def generate_gunit_data_claude(lob, builder, base_method_name, features):
         f"have methods in the data builder, and for nested builders, do it accordingly. Remove the data which doesn't "
         f"have methods. When returning the value, use the .create() method only."
     )
-    print("data_generator_prompt",data_generator_prompt)
+    print("data_generator_prompt", data_generator_prompt)
     data_generator_response = get_response(data_generator_prompt)
     print("data generator:", data_generator_response)
 
@@ -452,6 +453,148 @@ def generate_gunit_data_claude(lob, builder, base_method_name, features):
     gunit_generation_prompt = (
         f"{gunit_format} Here is what a gunit looks like in Guidewire using Gosu. Now can you create a gunit for this base "
         f"method {base_method_name} and call this data generator function {data_generator_response} to get test data for this "
+        f"gunit? Also, keep in mind it's just an example, and there are no helper or util classes available. Do "
+        f"everything inside the same class as the gunit and extract the whole data generator function from the data "
+        f"generator and put it in the gunit class. Use those methods to create the gunit. "
+        "Also, create the methods needed for the gunit and all the imports and uses required "
+        f"according to the comments provided in the reference. Generate this in Gosu and only create "
+        f"a single method."
+    )
+    gunit_generation_response = get_response(gunit_generation_prompt)
+    print("gunit response:", gunit_generation_response)
+    gunit_generation_output = format_code(gunit_generation_response)
+    print("Data Builder:\n", data_builder_output)
+    print("Data Generator:\n", data_generator_output, "\n")
+    print("GUnit:\n", gunit_generation_output, "\n")
+    return data_builder_output, gunit_generation_output
+
+
+def generate_gunit_data_claude_class(lob, builder, file_content, features):
+    folder_name = 'full/'
+    builder_name = f'{builder}.html'
+    builder_name_ootd = f'{builder}Builder'
+    result = search_builder(folder_name, builder_name)
+    pre_signed_url = result.get('pre_signed_url', '')
+    print("pre_signed_url:", pre_signed_url)
+
+    field_map = extract_data_from_html(pre_signed_url)
+    print("Field Map:", field_map)
+
+    all_base_methods = get_object_from_s3('baseMethods.txt')
+    contents = get_object_from_s3('entityTableDescriptions.txt')
+    data_builder_template = get_object_from_s3('DataBuilderFormat.txt')
+    gunit_format = get_object_from_s3('GunitFormat.txt')
+    data_generator_template = get_object_from_s3('DataGeneratorFormat.txt')
+    builder = builder.lower()
+    target_entity = 'cc_' + builder
+    pattern = rf'\b{re.escape(target_entity)}\.(\w+)\b'
+    columns = re.findall(pattern, contents)
+    print("Columns:", columns)
+    ootb_builder_check = get_excel_from_s3('list_of_Builders.xlsx')
+
+    is_present = builder_name_ootd in ootb_builder_check['List of ootb builder'].values
+    print(is_present)
+
+    print(ootb_builder_check)
+
+    if is_present:
+        data_builder_template = get_object_from_s3('custom_Data_Builder.txt')
+        print("Custom builder:", data_builder_template)
+        pattern_ext = rf'\b{re.escape(target_entity)}\.(\w+_Ext)\b'
+        columns = re.findall(pattern_ext, contents)
+        print("Columns with target entity and ending with '_Ext':", columns)
+    else:
+        pattern = rf'\b{re.escape(target_entity)}\.(\w+)\b'
+        columns = re.findall(pattern, contents)
+        print("Columns:", columns)
+
+    column_type_map = {col: field_map.get(col, 'unknown') for col in columns if
+                       field_map.get(col) != 'softentityreference'}
+    print("Column Type Map:", column_type_map)
+
+    data_type_mapping_template = get_excel_from_s3('dataTypeMapping.xlsx')
+    print("Excel Data:\n", data_type_mapping_template)
+    updated_column_type_map = replace_column_types(column_type_map, data_type_mapping_template)
+    print("Updated Column Type Map:", updated_column_type_map)
+    object_data = get_excel_from_s3(f'{builder}Data.xlsx')
+    print("object_data", object_data.to_string())
+    object_data = object_data.to_string()
+    fields_to_exclude = "createtime, createuser, updatetime, updateuser, ID, publicID, retiredValue,policySystemAdd"
+
+    find_builder = get_object_from_s3(f'{builder}Builder.txt')
+    print("find builder:", find_builder)
+
+    chunk_size = 25
+    count2 = 0
+    data_builder_output = ""  # Initialize data_builder_output as an empty string
+    combined_code = ""
+    if find_builder is None:
+        column_chunks = [{k: updated_column_type_map[k] for k in list(updated_column_type_map)[i:i + chunk_size]}
+                         for i in range(0, len(updated_column_type_map), chunk_size)]
+        data_builder_response = ""
+        all_methods = []
+        for count, chunk in enumerate(column_chunks):
+            chunk_str = ', '.join([f'{col}: {typ}' for col, typ in chunk.items()])
+            if count == 0:
+                data_builder_prompt = (
+                    f"{data_builder_template} Here is a basic structure of a data builder class in Guidewire using Gosu. "
+                    f"Based on this, create a data builder for the {lob} line of business with the objects {features} added to the builder. "
+                    f"The {builder} entity has the following columns: {chunk_str},generate only the methods for the fields in the chunk and objects if provided by me they should be similar to the methods of the columns I want you to create a data based "
+                    f"on the data I provided and also exclude these fields if they exist: {fields_to_exclude}. "
+                    f"Generate only the code for {builder}, no extra text. I only want the builder code just like the reference I "
+                    f"provided. Do not add how to use the builders inside the builder. Add all the uses and imports from the reference I am providing. Keep the data types of the fields exactly the same."
+                )
+                print("data builder prompt:", data_builder_prompt)
+                data_builder_response = get_response(data_builder_prompt)
+                print("data builder response:", data_builder_response)
+                data_builder_output = format_code(data_builder_response)
+                print("data builder output:", data_builder_output)
+
+                count = count + 1
+            else:
+                count2 = 1
+                data_builder_prompt = (
+                    f"{data_builder_output} Here is a data builder. Generate only the methods and not the class for "
+                    f"these columns {chunk_str}, similar to the methods inside the provided data builder. Exclude these fields if they exist: "
+                    f"{fields_to_exclude}. Generate only the code, no extra text. Keep the data types of the fields exactly the same."
+                )
+                data_builder_response = get_response(data_builder_prompt)
+                print("response:", data_builder_response)
+
+                # Extract the text from the TextBlock object
+                response_text = data_builder_response[0].text if data_builder_response else ""
+
+                new_methods = format_code(response_text)
+                print("new methods:", new_methods)
+                if new_methods:
+                    all_methods.extend(new_methods.split('\n'))
+        if count2 == 1:
+            data_builder_output += "\n".join(all_methods)
+            data_builder_output += "\n}"
+
+    else:
+        data_builder_output = find_builder
+
+    data_generator_prompt = (
+        f"{data_builder_output} Call the methods inside the builder. Can you set the properties of a {builder} and  "
+        f"create a data generator for Guidewire in Gosu? Only generate the code, no extra text. The basic structure of "
+        f"a data generator in Guidewire is {data_generator_template}. Based on this structure, create a data generator "
+        f"along with these features: {features} only. "
+        f"For {builder}, the data to add for each field should be taken from here: {object_data} strictly follow it. The object data "
+        f"and the fields which don't have a value here should be set yourself following the trend of the data I provided. "
+        f"Set the fields according to the field name beside it and read the comments in the example I provided. Make sure to follow them. Also, add data for all the fields which "
+        f"have methods in the data builder, and for nested builders, do it accordingly. Remove the data which doesn't "
+        f"have methods. When returning the value, use the .create() method only."
+    )
+    print("data_generator_prompt", data_generator_prompt)
+    data_generator_response = get_response(data_generator_prompt)
+    print("data generator:", data_generator_response)
+
+    data_generator_output = format_code(data_generator_response)
+
+    gunit_generation_prompt = (
+        f"{gunit_format} Here is what a gunit looks like in Guidewire using Gosu. Now can you create a gunit for this base "
+        f"method {file_content} and call this data generator function {data_generator_response} to get test data for this "
         f"gunit? Also, keep in mind it's just an example, and there are no helper or util classes available. Do "
         f"everything inside the same class as the gunit and extract the whole data generator function from the data "
         f"generator and put it in the gunit class. Use those methods to create the gunit. "
