@@ -103,12 +103,12 @@ body {
     margin: 10px;
 }
 
-#test-input, #bdd-jira-input {
-    display: none;
-    position: absolute;
-    top: 100px;
-    left: 230px;
-}
+ .git-branch-info {
+        font-style: italic;
+        font-size: smaller;
+        margin: 0;
+        padding: 0;
+    }
 
 #output {
     font-weight: bold;
@@ -116,7 +116,6 @@ body {
     top: 200px;
     left: 240px;
 }
-
 #alertbdd, #alert1 {
     font-weight: bold;
     position: absolute;

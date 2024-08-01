@@ -1,17 +1,19 @@
 import io
 import os
 from typing import List
-
 import anthropic
 import boto3
 import re
-
+import tiktoken
 from flask import jsonify
 from openai import OpenAI
 from dotenv import load_dotenv
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
+import openpyxl
+import csv
+from datetime import datetime
 
 load_dotenv()
 
@@ -20,12 +22,13 @@ load_dotenv()
 AWS_ACCESS_KEY_ID = os.getenv("aws_access_key_id")
 AWS_SECRET_ACCESS_KEY = os.getenv("aws_secret_access_key")
 AWS_GUNIT_BUCKET = os.getenv("aws_gunit_bucket")
+region_name = os.getenv("region_name")
 
 s3_client = boto3.client(
     "s3",
     aws_access_key_id=AWS_ACCESS_KEY_ID,
     aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-    region_name="us-east-1"
+    region_name=region_name
 
 )
 
@@ -36,7 +39,8 @@ safety_settings = [
     {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
 ]
 
-print(os.getenv("openAI_model"))
+
+# print(os.getenv("openAI_model"))
 
 
 # def generate_openai_response(prompt):
@@ -51,17 +55,21 @@ print(os.getenv("openAI_model"))
 #     )
 #     return response.choices[0].message.content
 
+
+def calculate_tokens(text, encoding_name='claude-3-sonnet-20240229'):
+    encoding = tiktoken.encoding_for_model(encoding_name)
+    tokens = encoding.encode(text)
+    return len(tokens)
+
+
 def get_excel_from_s3(object_name):
     try:
         s3_client_data = s3_client.get_object(Bucket=AWS_GUNIT_BUCKET, Key=object_name)
         raw_data = s3_client_data['Body'].read()
-
-        # Print raw data for debugging
-        print("Raw Data:", raw_data[:100])  # Print first 100 bytes for inspection
+        print("Raw Data:", raw_data[:100])
 
         excel_data = pd.read_excel(io.BytesIO(raw_data), engine='openpyxl')
 
-        # Strip and replace non-breaking spaces from column names
         print("excel_data", excel_data)
         return excel_data
     except s3_client.exceptions.NoSuchKey:
@@ -103,13 +111,19 @@ def extract_code(response):
 
 
 def extract_base_method_function(all_base_methods, base_method):
-    pattern = rf'public\s+static\s+function\s+{re.escape(base_method)}\s*\([^\)]*\)\s*\{{.*?\}}'
+    try:
+        pattern = rf'public\s+static\s+function\s+{re.escape(base_method)}\s*\([^\)]*\)\s*\{{.*?\}}'
+        match = re.search(pattern, all_base_methods, re.DOTALL)
 
-    match = re.search(pattern, all_base_methods, re.DOTALL)
-
-    if match:
-        return match.group(0)
-    else:
+        if match:
+            return match.group(0)
+        else:
+            return None
+    except re.error as e:
+        print(f"Regex error: {e}")
+        return None
+    except Exception as e:
+        print(f"An error occurred: {e}")
         return None
 
 
@@ -177,11 +191,18 @@ def extract_data_from_html(url):
 
 
 def replace_column_types(column_type_map, excel_data):
-    type_mapping = dict(zip(excel_data['Datatype Mapping'], excel_data['Unnamed: 1']))
+    try:
+        type_mapping = dict(zip(excel_data['Datatype Mapping'], excel_data['Unnamed: 1']))
 
-    updated_column_type_map = {k: type_mapping.get(v, v) for k, v in column_type_map.items()}
+        updated_column_type_map = {k: type_mapping.get(v, v) for k, v in column_type_map.items()}
 
-    return updated_column_type_map
+        return updated_column_type_map
+    except KeyError as e:
+        print(f"Key error: {e}")
+        return None
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
 
 
 # def generate_gunit_data(lob, builder, base_method_name, features):
@@ -278,9 +299,24 @@ def replace_column_types(column_type_map, excel_data):
 #     print("GUnit:\n", gunit_generation_output, "\n")
 #     return data_builder_output, gunit_generation_output
 client = anthropic.Anthropic(
-    # defaults to os.environ.get("ANTHROPIC_API_KEY")
     api_key=os.getenv('claude_apiKey'),
 )
+
+
+def add_data_to_excel(file_path, data):
+    # Check if the file exists
+    file_exists = os.path.isfile(file_path)
+
+    # Open the file in append mode
+    with open(file_path, 'a', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+
+        # If the file doesn't exist, write the header
+        if not file_exists:
+            writer.writerow(['Date Time', 'Builder', 'Model Used', 'Type', 'Input Tokens', 'Output Tokens'])
+
+        # Write the data
+        writer.writerow(data)
 
 
 def format_code(response):
@@ -315,9 +351,19 @@ def format_code(response):
         raise ValueError("Invalid input type for format_code function")
 
 
-def get_response(prompt):
+def get_response_haiku(prompt):
     output = client.messages.create(
-        model="claude-3-sonnet-20240229",
+        model="claude-3-haiku-20240307",
+        max_tokens=4000,
+        temperature=0,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return output.content
+
+
+def get_response_sonnet(prompt):
+    output = client.messages.create(
+        model="claude-3-5-sonnet-20240620",
         max_tokens=4000,
         temperature=0,
         messages=[{"role": "user", "content": prompt}],
@@ -372,7 +418,7 @@ def generate_gunit_data_claude(lob, builder, base_method_name, features):
     print("Excel Data:\n", data_type_mapping_template)
     updated_column_type_map = replace_column_types(column_type_map, data_type_mapping_template)
     print("Updated Column Type Map:", updated_column_type_map)
-    object_data = get_excel_from_s3(f'{builder}Data.xlsx')
+    object_data = get_excel_from_s3(f'{builder}Data_{lob}.xlsx')
     print("object_data", object_data.to_string())
     object_data = object_data.to_string()
     base_method = extract_base_method_function(all_base_methods, base_method_name)
@@ -384,8 +430,14 @@ def generate_gunit_data_claude(lob, builder, base_method_name, features):
 
     chunk_size = 25
     count2 = 0
-    data_builder_output = ""  # Initialize data_builder_output as an empty string
+    data_builder_output = ""
     combined_code = ""
+    input_tokens_builder = 0
+    output_tokens_builder = 0
+    input_tokens_generator = 0
+    output_tokens_generator = 0
+    input_tokens_gunit = 0
+    output_tokens_gunit = 0
     if find_builder is None:
         column_chunks = [{k: updated_column_type_map[k] for k in list(updated_column_type_map)[i:i + chunk_size]}
                          for i in range(0, len(updated_column_type_map), chunk_size)]
@@ -396,16 +448,19 @@ def generate_gunit_data_claude(lob, builder, base_method_name, features):
             if count == 0:
                 data_builder_prompt = (
                     f"{data_builder_template} Here is a basic structure of a data builder class in Guidewire using Gosu. "
-                    f"Based on this, create a data builder for the {lob} line of business with the objects {features} added to the builder. "
+                    f"Based on this, create a {builder} builder for {lob} line of business with methods for objects {features} in the builder just like the methods for the columns use the set keyword to add the data to the objects  "
                     f"The {builder} entity has the following columns: {chunk_str},generate only the methods for the fields in the chunk and objects if provided by me they should be similar to the methods of the columns I want you to create a data based "
                     f"on the data I provided and also exclude these fields if they exist: {fields_to_exclude}. "
                     f"Generate only the code for {builder}, no extra text. I only want the builder code just like the reference I "
-                    f"provided. Do not add how to use the builders inside the builder. Add all the uses and imports from the reference I am providing. Keep the data types of the fields exactly the same."
+                    f"provided. Do not add how to use the builders inside the builder. Add all the uses and imports from the reference I am providing to the builder you generate. Keep the data types of the fields exactly the same and generate methods for all fields. "
                 )
                 print("data builder prompt:", data_builder_prompt)
-                data_builder_response = get_response(data_builder_prompt)
-                print("data builder response:", data_builder_response)
+                data_builder_response = get_response_sonnet(data_builder_prompt)
                 data_builder_output = format_code(data_builder_response)
+                input_tokens_builder = client.count_tokens(data_builder_prompt)
+                print("data builder response:", data_builder_response)
+                data_builder_response_string = str(data_builder_response)
+                output_tokens_builder = client.count_tokens(data_builder_response_string)
                 print("data builder output:", data_builder_output)
 
                 count = count + 1
@@ -416,7 +471,12 @@ def generate_gunit_data_claude(lob, builder, base_method_name, features):
                     f"these columns {chunk_str}, similar to the methods inside the provided data builder. Exclude these fields if they exist: "
                     f"{fields_to_exclude}. Generate only the code, no extra text. Keep the data types of the fields exactly the same."
                 )
-                data_builder_response = get_response(data_builder_prompt)
+                input_tokens_builder += client.count_tokens(data_builder_prompt)
+                print("input tokens for methods in builder",input_tokens_builder)
+                data_builder_response = get_response_haiku(data_builder_prompt)
+                data_builder_response_string = str(data_builder_response)
+                output_tokens_builder += client.count_tokens(data_builder_response_string)
+                print("output tokens for methods in builder",output_tokens_builder)
                 print("response:", data_builder_response)
 
                 # Extract the text from the TextBlock object
@@ -432,39 +492,61 @@ def generate_gunit_data_claude(lob, builder, base_method_name, features):
 
     else:
         data_builder_output = find_builder
+    date_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    model_used = "Sonnet"
+    print("input and output tokens befor saving in the excel",input_tokens_builder,output_tokens_builder)
+    data_to_save = [date_time, builder, "Builder", model_used, input_tokens_builder, output_tokens_builder]
+    excel_file_path = "temp/Token_Information.csv"
+    add_data_to_excel(excel_file_path, data_to_save)
 
     data_generator_prompt = (
-        f"{data_builder_output} Call the methods inside the builder. Can you set the properties of a {builder} and  "
-        f"create a data generator for Guidewire in Gosu? Only generate the code, no extra text. The basic structure of "
-        f"a data generator in Guidewire is {data_generator_template}. Based on this structure, create a data generator "
-        f"along with these features: {features} only. "
-        f"For {builder}, the data to add for each field should be taken from here: {object_data} strictly follow it. The object data "
-        f"and the fields which don't have a value here should be set yourself following the trend of the data I provided. "
-        f"Set the fields according to the field name beside it and read the comments in the example I provided. Make sure to follow them. Also, add data for all the fields which "
-        f"have methods in the data builder, and for nested builders, do it accordingly. Remove the data which doesn't "
-        f"have methods. When returning the value, use the .create() method only."
+        f"Create a Guidewire data generator in Gosu for {builder} using this template: {data_generator_template}Include only these features: {features}Use this data for field values: {object_data}Instruction 1. Only generate code, no explanations. 2. Include methods for all fields in the data builder, including nested builders.3. Use .create() method when returning the value.4. For fields without provided values, set appropriate values following the trend of given data.5. Exclude data without corresponding methods.. Start each feature's data when encountering 'NaN' as a field value.{data_builder_output} just use the methods from this data_builder and don't add the whole builder in it create the builder according to the instructions"
     )
+    input_tokens_generator = client.count_tokens(data_generator_prompt)
     print("data_generator_prompt", data_generator_prompt)
-    data_generator_response = get_response(data_generator_prompt)
+    data_generator_response = get_response_haiku(data_generator_prompt)
+    data_generator_response_string = str(data_generator_response)
+    output_tokens_generator = client.count_tokens(data_generator_response_string)
     print("data generator:", data_generator_response)
+    date_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    model_used = "Haiku"
+    data_to_save = [date_time, builder, "Generator", model_used, input_tokens_generator, output_tokens_generator]
+    excel_file_path = "temp/Token_Information.csv"
+    add_data_to_excel(excel_file_path, data_to_save)
 
     data_generator_output = format_code(data_generator_response)
 
     gunit_generation_prompt = (
         f"{gunit_format} Here is what a gunit looks like in Guidewire using Gosu. Now can you create a gunit for this base "
-        f"method {base_method_name} and call this data generator function {data_generator_response} to get test data for this "
-        f"gunit? Also, keep in mind it's just an example, and there are no helper or util classes available. Do "
+        f"method {base_method_name} and call this data generator function {data_generator_output} to get test data for this "
+        f"gunit. Also, keep in mind it's just an example, and there are no helper or util classes available so instead add the base method in gunit and call it directly. Do "
         f"everything inside the same class as the gunit and extract the whole data generator function from the data "
         f"generator and put it in the gunit class. Use those methods to create the gunit. "
         "Also, create the methods needed for the gunit and all the imports and uses required "
         f"according to the comments provided in the reference. Generate this in Gosu and only create "
         f"a single method."
     )
-    gunit_generation_response = get_response(gunit_generation_prompt)
+    print("gunit prompt:", gunit_generation_prompt)
+    input_tokens_gunit = client.count_tokens(gunit_generation_prompt)
+    gunit_generation_response = get_response_haiku(gunit_generation_prompt)
+    gunit_generation_response_string = str(gunit_generation_response)
     print("gunit response:", gunit_generation_response)
+    output_tokens_gunit = client.count_tokens(gunit_generation_response_string)
     gunit_generation_output = format_code(gunit_generation_response)
-    print("Data Builder:\n", data_builder_output)
+    date_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    model_used = "Haiku"  # Replace with the actual model used if different
+    data_to_save = [date_time, builder, "Gunit", model_used, input_tokens_gunit, output_tokens_gunit]
+    excel_file_path = "temp/Token_Information.csv"
+    add_data_to_excel(excel_file_path, data_to_save)
+
+    print("Data Builder input tokens:\n", input_tokens_builder)
+    print("Data Builder output token:\n", output_tokens_builder)
+    print("Data Builder :\n", data_builder_output)
+    print("Data Generator input tokens:\n", input_tokens_generator, "\n")
+    print("Data Generator output tokens:\n", output_tokens_generator, "\n")
     print("Data Generator:\n", data_generator_output, "\n")
+    print("GUnit input tokens:\n", input_tokens_gunit, "\n")
+    print("GUnit output tokens:\n", output_tokens_gunit, "\n")
     print("GUnit:\n", gunit_generation_output, "\n")
     return data_builder_output, gunit_generation_output
 
@@ -496,6 +578,7 @@ def generate_gunit_data_claude_class(lob, builder, file_content, features):
     print(is_present)
 
     print(ootb_builder_check)
+    prompt_extension = ""
 
     if is_present:
         data_builder_template = get_object_from_s3('custom_Data_Builder.txt')
@@ -503,6 +586,7 @@ def generate_gunit_data_claude_class(lob, builder, file_content, features):
         pattern_ext = rf'\b{re.escape(target_entity)}\.(\w+_Ext)\b'
         columns = re.findall(pattern_ext, contents)
         print("Columns with target entity and ending with '_Ext':", columns)
+        prompt_extension = "all the imports and uses required provided in the reference and make extend the same class which it extends in the reference."
     else:
         pattern = rf'\b{re.escape(target_entity)}\.(\w+)\b'
         columns = re.findall(pattern, contents)
@@ -523,7 +607,8 @@ def generate_gunit_data_claude_class(lob, builder, file_content, features):
 
     find_builder = get_object_from_s3(f'{builder}Builder.txt')
     print("find builder:", find_builder)
-
+    input_tokens_builder = 0
+    output_tokens_builder = 0
     chunk_size = 25
     count2 = 0
     data_builder_output = ""  # Initialize data_builder_output as an empty string
@@ -537,16 +622,18 @@ def generate_gunit_data_claude_class(lob, builder, file_content, features):
             chunk_str = ', '.join([f'{col}: {typ}' for col, typ in chunk.items()])
             if count == 0:
                 data_builder_prompt = (
-                    f"{data_builder_template} Here is a basic structure of a data builder class in Guidewire using Gosu. "
-                    f"Based on this, create a data builder for the {lob} line of business with the objects {features} added to the builder. "
-                    f"The {builder} entity has the following columns: {chunk_str},generate only the methods for the fields in the chunk and objects if provided by me they should be similar to the methods of the columns I want you to create a data based "
-                    f"on the data I provided and also exclude these fields if they exist: {fields_to_exclude}. "
-                    f"Generate only the code for {builder}, no extra text. I only want the builder code just like the reference I "
-                    f"provided. Do not add how to use the builders inside the builder. Add all the uses and imports from the reference I am providing. Keep the data types of the fields exactly the same."
-                )
+                                          f"{data_builder_template} Here is a basic structure of a data builder class in Guidewire using Gosu. "
+                                          f"Based on this, create a data builder for the {lob} line of business. "
+                                          f"The {builder} entity has the following columns: {chunk_str},generate only the methods for the fields in the chunk and these objects [{features}]if provided by me they should be similar to the methods of the columns I want you to create a method based "
+                                          f"on the data I provided and also exclude these fields if they exist: {fields_to_exclude}. "
+                                          f"Generate only the code for {builder}, no extra text. I only want the builder code just like the reference I "
+                                          f"provided. Do not add how to use the builders inside the builder. Add all the uses and imports from the reference I am providing. Keep the data types of the fields exactly the same."
+                                      ) + prompt_extension
                 print("data builder prompt:", data_builder_prompt)
-                data_builder_response = get_response(data_builder_prompt)
+                data_builder_response = get_response_haiku(data_builder_prompt)
+                input_tokens_builder = client.count_tokens(data_builder_prompt)
                 print("data builder response:", data_builder_response)
+                output_tokens_builder = client.count_tokens(data_builder_response)
                 data_builder_output = format_code(data_builder_response)
                 print("data builder output:", data_builder_output)
 
@@ -558,7 +645,10 @@ def generate_gunit_data_claude_class(lob, builder, file_content, features):
                     f"these columns {chunk_str}, similar to the methods inside the provided data builder. Exclude these fields if they exist: "
                     f"{fields_to_exclude}. Generate only the code, no extra text. Keep the data types of the fields exactly the same."
                 )
-                data_builder_response = get_response(data_builder_prompt)
+                input_tokens_builder += client.count_tokens(data_builder_prompt)
+                data_builder_response = get_response_haiku(data_builder_prompt)
+                output_tokens_builder += client.count_tokens(data_builder_response)
+
                 print("response:", data_builder_response)
 
                 # Extract the text from the TextBlock object
@@ -576,18 +666,10 @@ def generate_gunit_data_claude_class(lob, builder, file_content, features):
         data_builder_output = find_builder
 
     data_generator_prompt = (
-        f"{data_builder_output} Call the methods inside the builder. Can you set the properties of a {builder} and  "
-        f"create a data generator for Guidewire in Gosu? Only generate the code, no extra text. The basic structure of "
-        f"a data generator in Guidewire is {data_generator_template}. Based on this structure, create a data generator "
-        f"along with these features: {features} only. "
-        f"For {builder}, the data to add for each field should be taken from here: {object_data} strictly follow it. The object data "
-        f"and the fields which don't have a value here should be set yourself following the trend of the data I provided. "
-        f"Set the fields according to the field name beside it and read the comments in the example I provided. Make sure to follow them. Also, add data for all the fields which "
-        f"have methods in the data builder, and for nested builders, do it accordingly. Remove the data which doesn't "
-        f"have methods. When returning the value, use the .create() method only."
+        f"Create a Guidewire data generator in Gosu for {builder} using this template: {data_generator_template}Include only these features: {features}Use this data for field values: {object_data}Instruction 1. Only generate code, no explanations. 2. Include methods for all fields in the data builder, including nested builders.3. Use .create() method when returning the value.4. For fields without provided values, set appropriate values following the trend of given data.5. Exclude data without corresponding methods.. Start each feature's data when encountering 'NaN' as a field value.{data_builder_output} just use the methods from this data_builder and don't add the whole builder in it"
     )
     print("data_generator_prompt", data_generator_prompt)
-    data_generator_response = get_response(data_generator_prompt)
+    data_generator_response = get_response_haiku(data_generator_prompt)
     print("data generator:", data_generator_response)
 
     data_generator_output = format_code(data_generator_response)
@@ -599,13 +681,20 @@ def generate_gunit_data_claude_class(lob, builder, file_content, features):
         f"everything inside the same class as the gunit and extract the whole data generator function from the data "
         f"generator and put it in the gunit class. Use those methods to create the gunit. "
         "Also, create the methods needed for the gunit and all the imports and uses required "
-        f"according to the comments provided in the reference. Generate this in Gosu and only create "
-        f"a single method."
+        f"provided in the reference and make it extend the same class which it extends in the reference. Generate "
+        f"this in Gosu and only create a single method."
     )
-    gunit_generation_response = get_response(gunit_generation_prompt)
+
+    print("gunit prompt:", gunit_generation_prompt)
+    gunit_generation_response = get_response_haiku(gunit_generation_prompt)
     print("gunit response:", gunit_generation_response)
     gunit_generation_output = format_code(gunit_generation_response)
-    print("Data Builder:\n", data_builder_output)
+    print("Data Builder input tokens:\n", input_tokens_builder)
+    print("Data Builder output token:\n", output_tokens_builder)
+    print("Data Builder :\n", data_builder_output)
+    print("Data Generator input tokens:\n", input, "\n")
+    print("Data Generator:\n", data_generator_output, "\n")
+
     print("Data Generator:\n", data_generator_output, "\n")
     print("GUnit:\n", gunit_generation_output, "\n")
     return data_builder_output, gunit_generation_output

@@ -10,12 +10,16 @@ const classNameInput = document.getElementById('class_name_input');
 let uploadBtn;
 
 let gunitInputDisplayed = false;
+//  function initiateLoader(){
+//        document.getElementById('loader').hidden = false;
+//    }
 
 function showGunitInput() {
     if (gunitInput && !gunitInputDisplayed) {
         gunitInput.style.display = 'block';
         if (output) {
             output.style.display = 'none';
+
         }
         gunitInputDisplayed = true;
     }
@@ -100,10 +104,9 @@ document.addEventListener("DOMContentLoaded", function() {
     uploadBtn.addEventListener('click', (event) => {
         event.preventDefault();
         if (validateForm()) {
-            if (typeof initiateLoader === 'function') {
-                initiateLoader();
-            }
             document.querySelector('.upload-gunit').submit();
+//            initiateLoader();
+
         }
     });
 });
