@@ -1,0 +1,31 @@
+﻿DateTime,Builder Generated,Type of Objecct,Model Used,Input Tokens,Output Tokens
+26-07-2024 15:26,vehicle,Builder,Haiku,837,1201
+26-07-2024 15:26,vehicle,Data generator,Haiku,2241,507
+26-07-2024 15:26,vehicle,Gunit,Haiku,2241,507
+26-07-2024 15:30,vehicle,Builder,Haiku,837,1201
+26-07-2024 15:30,vehicle,Data generator,Haiku,2241,507
+26-07-2024 15:31,vehicle,Gunit,Haiku,2241,507
+2024-07-29 11:53:42,vehicle,Builder,Sonnet,846,910
+2024-07-29 11:53:46,vehicle,Generator,Haiku,1976,411
+2024-07-29 11:53:52,vehicle,Gunit,Haiku,1367,737
+2024-07-29 15:26:18,vehicle,Builder,Sonnet,854,1171
+2024-07-29 15:26:23,vehicle,Generator,Haiku,2228,572
+2024-07-29 15:26:29,vehicle,Gunit,Haiku,1437,851
+2024-07-29 15:28:59,vehicle,Builder,Sonnet,856,1171
+2024-07-29 15:29:04,vehicle,Generator,Haiku,2228,572
+2024-07-29 15:29:10,vehicle,Gunit,Haiku,1437,851
+2024-07-29 15:36:03,vehicle,Builder,Sonnet,846,1103
+2024-07-29 15:36:08,vehicle,Generator,Haiku,2181,507
+2024-07-29 15:36:14,vehicle,Gunit,Haiku,1436,866
+2024-07-29 18:47:30,claim,Builder,Sonnet,0,0
+2024-07-29 18:47:46,claim,Generator,Haiku,9587,2143
+2024-07-29 18:47:54,claim,Gunit,Haiku,1872,1280
+2024-07-30 12:24:12,claim,Builder,Sonnet,8767,8692
+2024-07-30 12:24:22,claim,Generator,Haiku,9536,1091
+2024-07-30 12:24:30,claim,Gunit,Haiku,1855,1273
+2024-07-31 17:18:51,claim,Builder,Sonnet,9082,8859
+2024-07-31 17:19:04,claim,Generator,Haiku,9913,1385
+2024-07-31 17:19:13,claim,Gunit,Haiku,2126,1521
+2024-07-31 17:41:05,claim,Builder,Sonnet,9389,8707
+2024-07-31 17:41:14,claim,Generator,Haiku,9676,1057
+2024-07-31 17:41:24,claim,Gunit,Haiku,1947,1354
