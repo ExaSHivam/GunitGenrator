@@ -61,6 +61,7 @@ def generate_gunit():
         file_path = get_file_path(repo_owner, repo_name, sha_hash, class_name)
         print("sha_hash", sha_hash)
         file_content = fetch_file_content(repo_owner, repo_name, file_path)
+        print("file content",file_content)
         response, response1 = generate_gunit_data_claude_class(selected_lob, builder, file_content, features)
     # print("Data Builder: ", response)
     # print("Gunit: ", response1)

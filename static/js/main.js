@@ -7,19 +7,16 @@ const dropdownID = document.getElementById('lob_select');
 const gunitForm = document.getElementById('gunit-input');
 const baseMethodInput = document.getElementById('base_method_input');
 const classNameInput = document.getElementById('class_name_input');
+const selectedFeaturesInput = document.getElementById('selected-features');
 let uploadBtn;
 
 let gunitInputDisplayed = false;
-//  function initiateLoader(){
-//        document.getElementById('loader').hidden = false;
-//    }
 
 function showGunitInput() {
     if (gunitInput && !gunitInputDisplayed) {
         gunitInput.style.display = 'block';
         if (output) {
             output.style.display = 'none';
-
         }
         gunitInputDisplayed = true;
     }
@@ -52,7 +49,6 @@ function autoSize(textarea) {
     textarea.style.height = (Math.min(textarea.scrollHeight, 300)) + 'px';
 }
 
-// Add event listeners to dynamically resize textareas
 function copyToClipboard(id) {
     var textarea = document.getElementById(id);
     textarea.select();
@@ -65,6 +61,14 @@ function copyToClipboard(id) {
     } catch (err) {
         console.error('Oops, unable to copy', err);
     }
+}
+
+function updateSelectedFeatures() {
+    const selectedFeatures = [];
+    document.querySelectorAll('input[name="features"]:checked').forEach((checkbox) => {
+        selectedFeatures.push(checkbox.value);
+    });
+    selectedFeaturesInput.value = selectedFeatures.join(', ');
 }
 
 document.addEventListener("DOMContentLoaded", function() {
@@ -89,14 +93,8 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 
-    document.querySelectorAll('input[name="gunit_type"]').forEach((radio) => {
-        radio.addEventListener('change', function(event) {
-            if (event.target.value === 'base_method') {
-                baseMethodTextarea.style.display = 'block';
-            } else {
-                baseMethodTextarea.style.display = 'none';
-            }
-        });
+    document.querySelectorAll('input[name="features"]').forEach((checkbox) => {
+        checkbox.addEventListener('change', updateSelectedFeatures);
     });
 
     uploadBtn = document.getElementById('upload-gunit');
@@ -105,8 +103,6 @@ document.addEventListener("DOMContentLoaded", function() {
         event.preventDefault();
         if (validateForm()) {
             document.querySelector('.upload-gunit').submit();
-//            initiateLoader();
-
         }
     });
 });
@@ -128,11 +124,6 @@ function validateForm() {
     if (!builder.value) {
         isValid = false;
         alert('Please select a Builder.');
-    }
-
-    if (features.length === 0) {
-        isValid = false;
-        alert('Please select at least one Feature.');
     }
 
     if (gunitType.length === 0) {

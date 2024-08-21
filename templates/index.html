@@ -32,7 +32,13 @@
         <li><a href="#">Generate Gunit</a></li>
     </ul>
 </nav>
-
+<div class="lob-list">
+    <h3>LOBs</h3>
+    <ul>
+        <li>Personal Auto</li>
+        <li>Commercial Auto</li>
+    </ul>
+</div>
 <p class="hr"></p>
 
 <p>
@@ -80,15 +86,21 @@
                             </ul>
                         </div>
                     </div>
+
                 </div>
+                <div class="col-md-12 mt-3">
+                     <label for="selected-features">Selected Features</label>
+                     <input type="text" id="selected-features" class="form-control" readonly>
+                </div>
+
 
                 <div class="mt-3">
                     <label>GUnit for*:</label>
                     <p class="git-branch-info">(Git Branch Referred: Main)</p>
                     <input type="radio" id="base_method" name="gunit_type" value="base_method" required>
-                    <label for="base_method">Method</label><br>
+                    <label for="base_method">Method-Manual Entry</label><br>
                     <input type="radio" id="class" name="gunit_type" value="class" required>
-                    <label for="class">Class</label>
+                    <label for="class">Class-GitHub File Name </label>
                 </div>
 
                 <div id="base_method_input" class="mt-3" style="display: none;">
@@ -104,6 +116,7 @@
 
                 <button class="btn btn-danger mx-2 mt-3" id="upload-gunit">Generate Gunit</button>
             </form>
+
         </div>
     </div>
 
@@ -121,7 +134,7 @@
         <div class="col-md-12">
             <label for="response1" class="form-label">Gunit for {{ builder }}</label>
             <div class="input-group">
-                <textarea class="form-control textarea-large" id="response1" name="response1" readonly>{{ response1 }}</textarea>
+                <textarea class="form-control textarea-large bg-light" id="response1" name="response1" readonly>{{ response1 }}</textarea>
                 <div class="input-group-append">
                     <button class="btn btn-outline-secondary btn-small" type="button" onclick="copyToClipboard('response1')">Copy Code</button>
                 </div>
