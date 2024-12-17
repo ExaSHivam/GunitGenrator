@@ -761,7 +761,7 @@ def generate_gunit_data_claude_class(lob, builder, file_content, features):
         f"generator and put it in the gunit class. Use those methods to create the gunit. Also, create the methods "
         f"needed for the gunit and all the imports and uses required according to the comments provided in the "
         f"reference. Generate this in Gosu ."
-        f"a single method.add.ALso add uses for these feature :{features}like this 'uses gw.api.databuilder.featurename' at the top "
+        f"a single method.add.ALso add uses for these feature :{features}like this 'uses gw.api.databuilder.featurename' at the top.Don't add any annotations in the class "
     )
     print("gunit prompt:", gunit_generation_prompt)
     input_tokens_gunit = client.count_tokens(gunit_generation_prompt)

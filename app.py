@@ -6,6 +6,9 @@ from aws_s3 import generate_gunit_data_claude, generate_gunit_data_claude_class,
 from git import get_sha_for_path, get_file_path, fetch_file_content
 from llama_claude import generate_gunit_data_llama
 from dotenv import load_dotenv
+from flask import send_file, render_template, url_for
+from docx import Document
+from io import BytesIO
 
 # from claude_ai import generate_gunit_data_claude, generate_gunit_data_claude_llama
 
@@ -39,6 +42,17 @@ def get_builders():
     return jsonify(builder=filtered_builders)
 
 
+@app.route('/download_report')
+def download_report():
+    temp_file_path = 'gunit_report.docx'
+    return send_file(
+        temp_file_path,
+        as_attachment=True,
+        download_name='gunit_report.docx',
+        mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    )
+
+
 @app.route("/generate_gunit", methods=['POST'])
 def generate_gunit():
     selected_lob = request.form.get('selected_lob')
@@ -54,24 +68,42 @@ def generate_gunit():
 
     if (base_method):
         print("entered if block")
-        response, response1 = generate_gunit_data_claude(selected_lob, builder, base_method, features)
+        builder_output, gunit_output = generate_gunit_data_claude(selected_lob, builder, base_method, features)
     else:
         print("entered else block")
         sha_hash = get_sha_for_path(repo_owner, repo_name)
         file_path = get_file_path(repo_owner, repo_name, sha_hash, class_name)
         print("sha_hash", sha_hash)
         file_content = fetch_file_content(repo_owner, repo_name, file_path)
-        print("file content",file_content)
-        response, response1 = generate_gunit_data_claude_class(selected_lob, builder, file_content, features)
+        print("file content", file_content)
+        builder_output, gunit_output = generate_gunit_data_claude_class(selected_lob, builder, file_content, features)
     # print("Data Builder: ", response)
     # print("Gunit: ", response1)
+    # Create a Word document
+    doc = Document()
+    doc.add_heading('Gunit', 0)
+    doc.add_heading('Builder Output:', level=1)
+    doc.add_paragraph(builder_output)
+    doc.add_heading('Gunit Output:', level=1)
+    doc.add_paragraph(gunit_output)
 
-    return render_template('index.html',
-                           status="Gunit Successfully Generated",
-                           response=response,
-                           response1=response1,
-                           selected_lob=selected_lob,
-                           builder=builder)
+    # Save the document to a temporary file
+    temp_file_path = 'gunit_report.docx'
+    doc.save(temp_file_path)
+
+    # Generate a download URL for the file
+    download_url = url_for('download_report')
+
+    # Render the HTML page with a download link
+    return render_template(
+        'index.html',
+        status="Gunit Successfully Generated",
+        response=builder_output,
+        response1=gunit_output,
+        selected_lob=selected_lob,
+        builder=builder,
+        download_url=download_url
+    )
 
 
 if __name__ == "__main__":
