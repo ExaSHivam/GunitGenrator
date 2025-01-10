@@ -657,10 +657,13 @@ def generate_gunit_data_claude_class(lob, builder, file_content, features):
     updated_column_type_map = replace_column_types(column_type_map, data_type_mapping_template)
     print("Updated Column Type Map:", updated_column_type_map)
     object_data = get_excel_from_s3(f'{builder}Data_{lob}.xlsx')
-    feature_data=get_feature_data_from_s3('Features_data.xlsx',features)
-    print('feature data',feature_data)
-    print("object_data", object_data.to_string())
-    object_data = object_data.to_string()
+    if not features :
+        feature_data=get_feature_data_from_s3('Features_data.xlsx',features)
+        print('feature data',feature_data)
+        if object_data is not None:
+            print("object_data:", object_data.to_string())
+        else:
+            print("object_data is None")
     fields_to_exclude = "createtime, createuser, updatetime, updateuser, ID, publicID, retiredValue,policySystemAdd"
 
     find_builder = get_object_from_s3(f'{builder}Builder.txt')
